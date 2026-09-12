@@ -1,18 +1,8 @@
-# SwasthSetu — How to Build the Complete Project
+# SwasthSetu — How we build the Complete Project
 
 This README explains, in order, how to go from the architecture diagram to a real, working SwasthSetu kiosk. It covers only what was actually shown in the technical-approach diagram and what is confirmed to exist as of writing — where a step depends on getting access from a third party (UIDAI, ABDM, Bhashini), that is called out explicitly instead of assumed.
 
-Two things exist right now:
-- **`swasthsetu-prototype.html`** — a self-contained, clickable simulation of the whole patient journey, with every backend call mocked. Open it in any browser. Use it as the reference for exactly what each screen should do.
-- **`SwasthSetu_Documentation.docx`** — the architecture write-up this README assumes you've read.
-
-Everything below is what's needed to turn that simulation into the real thing.
-
----
-
 ## Prototype ko kaise use karein (step-by-step) + aage kya real banega
-
-Pehle `swasthsetu-prototype.html` file ko kisi bhi browser me directly open karo (double-click karo, ya browser me drag-drop karo) — koi install ya internet nahi chahiye. Neeche har step me batayenge: prototype me abhi kya hota hai, aur production version me uski jagah kya real cheez implement hogi.
 
 1. **Welcome screen** — "EN / हिं" toggle try karo, phir "Touch to begin" dabao.
    - *Abhi:* sirf do languages ke sample text switch hote hain.
