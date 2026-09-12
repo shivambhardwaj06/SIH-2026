@@ -66,10 +66,10 @@
   .ghost-btn:hover{border-color:var(--ink-faint);}
 
   /* ---------- Layout ---------- */
-/* NAYA */
-.stage{
+  .stage{
     max-width:1600px; margin:0 auto; padding:18px clamp(18px,4vw,48px) 60px;
     display:grid; grid-template-columns:120px minmax(560px,700px) 320px;
+    gap:28px; align-items:start;
   }
   @media (max-width:1100px){
     .stage{grid-template-columns:1fr; justify-items:center;}
@@ -105,23 +105,36 @@
 
   /* ---------- Kiosk shell ---------- */
   .kiosk-wrap{display:flex; flex-direction:column; align-items:center; gap:14px;}
-/* NAYA */
-.kiosk-shell{
-    width:640px; max-width:94vw; background:linear-gradient(180deg,#232C28,#171E1B);
-    border-radius:38px; padding:16px 14px 26px; box-shadow:var(--shadow);
-    position:relative;
+  .kiosk-shell{
+    width:640px; max-width:94vw; background:linear-gradient(180deg,#2B3530,#171E1B);
+    border-radius:22px; padding:0 16px 16px; box-shadow:var(--shadow);
+    position:relative; border:1px solid #3A4741;
   }
-  .kiosk-notch{
-    width:70px; height:14px; background:#0F1412; border-radius:8px; margin:0 auto 12px;
-    display:flex; align-items:center; justify-content:center; gap:6px;
+  .kiosk-brand-bar{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:16px 0; color:#EDEAE0; font-family:'Fraunces',serif;
+    font-weight:600; font-size:18px; letter-spacing:.3px;
   }
-  .kiosk-notch span{width:5px;height:5px;border-radius:50%; background:#3A4741;}
-/* PURANA */
-.kiosk-screen{
-    background:var(--paper-raised); border-radius:24px; min-height:900px;
+  .kiosk-brand-bar.bottom{ padding:12px 0 6px; font-size:15px; opacity:.8; }
+  .kiosk-logo{
+    width:22px; height:22px; border-radius:6px; flex:none; position:relative;
+    background:conic-gradient(from 210deg, var(--saffron), var(--sage) 50%, var(--indigo) 100%);
+  }
+  .kiosk-logo::after{ content:""; position:absolute; inset:4px; border-radius:3px; background:#232C28; }
+  .kiosk-screen{
+    background:var(--paper-raised); border-radius:14px; min-height:900px;
     display:flex; flex-direction:column; overflow:hidden; position:relative;
   }
-  .kiosk-home{width:110px; height:4px; background:#3A4741; border-radius:3px; margin:14px auto 0;}
+  .kiosk-stand{ display:flex; flex-direction:column; align-items:center; }
+  .kiosk-pole{
+    width:36px; height:80px;
+    background:linear-gradient(90deg,#B9BDB4,#7D8279 45%,#B9BDB4);
+  }
+  .kiosk-foot{
+    width:240px; height:18px; border-radius:50%; margin-top:-2px;
+    background:linear-gradient(180deg,#9AA098,#6E736A);
+    box-shadow:0 16px 24px -6px rgba(20,26,23,.45);
+  }
 
   .screen-inner{
     padding:26px 24px 22px; display:flex; flex-direction:column; gap:16px; flex:1;
@@ -287,11 +300,19 @@
 
   <div class="kiosk-wrap">
     <div class="kiosk-shell">
-      <div class="kiosk-notch"><span></span><span></span></div>
+      <div class="kiosk-brand-bar">
+        <div class="kiosk-logo"></div><span>SwasthSetu</span>
+      </div>
       <div class="kiosk-screen">
         <div id="screenContent"></div>
       </div>
-      <div class="kiosk-home"></div>
+      <div class="kiosk-brand-bar bottom">
+        <div class="kiosk-logo"></div><span>SwasthSetu</span>
+      </div>
+    </div>
+    <div class="kiosk-stand">
+      <div class="kiosk-pole"></div>
+      <div class="kiosk-foot"></div>
     </div>
     <p class="note">Simulated kiosk touchscreen — no real Aadhaar, ABHA, or medical data is used or transmitted. All verification, AI and sync steps are mocked for demonstration.</p>
   </div>
