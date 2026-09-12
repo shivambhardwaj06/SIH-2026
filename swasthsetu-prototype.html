@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SwasthSetu — Kiosk Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF1E7;
+    --paper-raised:#FCFBF7;
+    --ink:#1C2622;
+    --ink-soft:#5A6560;
+    --ink-faint:#8A948E;
+    --line:#D8D8C9;
+    --saffron:#B87A1E;
+    --saffron-deep:#8F5F14;
+    --saffron-soft:#F1E1BC;
+    --indigo:#25507E;
+    --indigo-deep:#1B3B5F;
+    --indigo-soft:#DAE4EF;
+    --sage:#3E7A58;
+    --sage-soft:#DDEBE1;
+    --rust:#A24730;
+    --rust-soft:#F0DCD5;
+    --shadow: 0 18px 40px -18px rgba(20,26,23,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 12% -10%, #F7F4EC 0%, transparent 60%),
+      radial-gradient(1000px 600px at 110% 10%, #EFE9DA 0%, transparent 55%),
+      var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+  }
+  .display{font-family:'Fraunces', serif;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px clamp(18px,4vw,48px) 6px;
+    max-width:1320px; margin:0 auto;
+  }
+  .brandmark{display:flex; align-items:center; gap:12px;}
+  .brandmark .glyph{
+    width:38px;height:38px;border-radius:11px;
+    background:conic-gradient(from 210deg, var(--saffron), var(--sage) 50%, var(--indigo) 100%);
+    position:relative; flex:none;
+  }
+  .brandmark .glyph::after{
+    content:"";position:absolute;inset:6px;border-radius:7px;background:var(--paper-raised);
+  }
+  .brandmark .name{font-family:'Fraunces',serif; font-weight:600; font-size:20px; letter-spacing:0.2px;}
+  .brandmark .name small{display:block; font-family:'IBM Plex Sans',sans-serif; font-weight:500; font-size:11px; color:var(--ink-faint); letter-spacing:.4px;}
+  .topbar-actions{display:flex; gap:10px; align-items:center;}
+  .ghost-btn{
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink);
+    padding:9px 14px; border-radius:10px; font-size:13px; font-weight:500; cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;
+  }
+  .ghost-btn:hover{border-color:var(--ink-faint);}
+
+  /* ---------- Layout ---------- */
+  .stage{
+    max-width:1320px; margin:0 auto; padding:18px clamp(18px,4vw,48px) 60px;
+    display:grid; grid-template-columns:120px minmax(340px,460px) 320px;
+    gap:28px; align-items:start;
+  }
+  @media (max-width:1100px){
+    .stage{grid-template-columns:1fr; justify-items:center;}
+    .rail{order:1; flex-direction:row !important; width:100%; max-width:460px; justify-content:space-between; padding:10px 6px !important;}
+    .rail .rail-line{display:none;}
+    .logpanel{order:3; width:100%; max-width:460px;}
+    .kiosk-wrap{order:2;}
+  }
+
+  /* ---------- Journey rail ---------- */
+  .rail{
+    display:flex; flex-direction:column; gap:0; position:sticky; top:20px;
+    padding:26px 4px; height:fit-content;
+  }
+  .rail-step{
+    display:flex; align-items:center; gap:10px; position:relative; padding:10px 0;
+  }
+  .rail-dot{
+    width:30px;height:30px;border-radius:50%; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:600; font-family:'IBM Plex Sans',sans-serif;
+    background:var(--paper-raised); border:1.5px solid var(--line); color:var(--ink-faint);
+    transition:all .3s ease; z-index:2;
+  }
+  .rail-step.done .rail-dot{background:var(--sage); border-color:var(--sage); color:#fff;}
+  .rail-step.active .rail-dot{background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 0 0 4px var(--sage-soft);}
+  .rail-label{font-size:12.5px; color:var(--ink-faint); font-weight:500; line-height:1.25;}
+  .rail-step.active .rail-label{color:var(--ink); font-weight:600;}
+  .rail-step.done .rail-label{color:var(--ink-soft);}
+  .rail-line-seg{position:absolute; left:14.5px; top:36px; width:1px; height:calc(100% - 8px); background:var(--line); z-index:1;}
+  .rail-step.done .rail-line-seg{background:var(--sage);}
+  .rail-step:last-child .rail-line-seg{display:none;}
+
+  /* ---------- Kiosk shell ---------- */
+  .kiosk-wrap{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .kiosk-shell{
+    width:400px; max-width:92vw; background:linear-gradient(180deg,#232C28,#171E1B);
+    border-radius:38px; padding:16px 14px 26px; box-shadow:var(--shadow);
+    position:relative;
+  }
+  .kiosk-notch{
+    width:70px; height:14px; background:#0F1412; border-radius:8px; margin:0 auto 12px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .kiosk-notch span{width:5px;height:5px;border-radius:50%; background:#3A4741;}
+  .kiosk-screen{
+    background:var(--paper-raised); border-radius:24px; min-height:600px;
+    display:flex; flex-direction:column; overflow:hidden; position:relative;
+  }
+  .kiosk-home{width:110px; height:4px; background:#3A4741; border-radius:3px; margin:14px auto 0;}
+
+  .screen-inner{
+    padding:26px 24px 22px; display:flex; flex-direction:column; gap:16px; flex:1;
+    animation:riseIn .35s ease;
+  }
+  @keyframes riseIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .eyebrow{font-size:11.5px; font-weight:600; color:var(--ink-faint); letter-spacing:.3px;}
+  .kicker-row{display:flex; align-items:center; justify-content:space-between;}
+  h1.scr-title{font-family:'Fraunces',serif; font-size:24px; font-weight:600; margin:0; line-height:1.2;}
+  p.scr-sub{margin:0; color:var(--ink-soft); font-size:14px; line-height:1.5;}
+
+  .lang-toggle{display:flex; border:1px solid var(--line); border-radius:20px; overflow:hidden; font-size:12px;}
+  .lang-toggle button{border:none; background:transparent; padding:6px 12px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif; font-weight:600; color:var(--ink-faint);}
+  .lang-toggle button.on{background:var(--ink); color:#fff;}
+
+  .choice-card{
+    border:1.5px solid var(--line); border-radius:16px; padding:16px; text-align:left;
+    background:var(--paper-raised); cursor:pointer; display:flex; gap:14px; align-items:flex-start;
+    transition:border-color .15s, transform .1s; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .choice-card:hover{border-color:var(--ink-faint);}
+  .choice-card:active{transform:scale(.985);}
+  .choice-card .icn{width:42px; height:42px; border-radius:12px; flex:none; display:flex; align-items:center; justify-content:center; font-size:20px;}
+  .choice-card .ct{font-weight:600; font-size:15px; margin-bottom:3px;}
+  .choice-card .cs{font-size:12.5px; color:var(--ink-soft); line-height:1.4;}
+  .choice-card.ayush .icn{background:var(--saffron-soft); color:var(--saffron-deep);}
+  .choice-card.allo .icn{background:var(--indigo-soft); color:var(--indigo-deep);}
+  .choice-card.neutral .icn{background:var(--sage-soft); color:var(--sage);}
+
+  .btn{
+    border:none; border-radius:12px; padding:14px 18px; font-weight:600; font-size:14.5px;
+    cursor:pointer; font-family:'IBM Plex Sans',sans-serif; width:100%; text-align:center;
+  }
+  .btn-primary{background:var(--ink); color:#fff;}
+  .btn-primary:disabled{background:#C7CBC5; cursor:not-allowed;}
+  .btn-secondary{background:transparent; color:var(--ink); border:1.5px solid var(--line);}
+  .btn-row{display:flex; gap:10px;}
+  .btn-row .btn{width:auto; flex:1;}
+
+  .field-label{font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:block;}
+  .otp-row{display:flex; gap:8px;}
+  .otp-box{
+    width:100%; aspect-ratio:1/1.1; border:1.5px solid var(--line); border-radius:10px;
+    text-align:center; font-size:18px; font-weight:600; font-family:'IBM Plex Sans',sans-serif;
+    background:var(--paper); color:var(--ink);
+  }
+  .otp-box:focus{outline:2px solid var(--indigo); border-color:var(--indigo);}
+
+  .text-input{
+    width:100%; border:1.5px solid var(--line); border-radius:12px; padding:13px 14px;
+    font-size:14px; font-family:'IBM Plex Sans',sans-serif; background:var(--paper); color:var(--ink);
+  }
+  .text-input:focus{outline:2px solid var(--indigo); border-color:var(--indigo);}
+
+  .mic-zone{
+    display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px 0 4px;
+  }
+  .mic-btn{
+    width:74px; height:74px; border-radius:50%; border:none; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #fff2, transparent 60%), var(--indigo);
+    color:#fff; font-size:26px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 0 rgba(37,80,126,.4); position:relative;
+  }
+  .mic-btn.listening{animation:pulse 1.2s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(37,80,126,.45);}
+    70%{box-shadow:0 0 0 22px rgba(37,80,126,0);}
+    100%{box-shadow:0 0 0 0 rgba(37,80,126,0);}
+  }
+  .mic-hint{font-size:12px; color:var(--ink-faint); text-align:center;}
+  .transcript-box{
+    border:1.5px dashed var(--line); border-radius:12px; padding:14px; font-size:13.5px;
+    background:var(--paper); min-height:70px; color:var(--ink); line-height:1.5;
+  }
+  .transcript-box.placeholder{color:var(--ink-faint); font-style:italic;}
+
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600;}
+  .pill.saffron{background:var(--saffron-soft); color:var(--saffron-deep);}
+  .pill.indigo{background:var(--indigo-soft); color:var(--indigo-deep);}
+  .pill.sage{background:var(--sage-soft); color:var(--sage);}
+
+  .qa-block{border:1px solid var(--line); border-radius:14px; padding:14px;}
+  .qa-q{font-size:13.5px; font-weight:600; margin-bottom:10px;}
+  .chip-row{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    border:1.5px solid var(--line); border-radius:20px; padding:7px 13px; font-size:12.5px;
+    background:var(--paper-raised); cursor:pointer; font-family:'IBM Plex Sans',sans-serif; font-weight:500;
+  }
+  .chip.sel{background:var(--ink); color:#fff; border-color:var(--ink);}
+
+  .slider-row{display:flex; flex-direction:column; gap:6px;}
+  .slider-row input[type=range]{width:100%; accent-color:var(--indigo);}
+  .slider-vals{display:flex; justify-content:space-between; font-size:11px; color:var(--ink-faint);}
+
+  .summary-card{border:1px solid var(--line); border-radius:14px; padding:14px; background:var(--paper);}
+  .summary-row{display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:12.5px;}
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row .k{color:var(--ink-faint); font-weight:500;}
+  .summary-row .v{font-weight:600; text-align:right;}
+
+  .scroll-area{max-height:330px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding-right:2px;}
+  .scroll-area::-webkit-scrollbar{width:5px;}
+  .scroll-area::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+
+  .progress-item{display:flex; align-items:center; gap:10px; font-size:13px;}
+  .progress-item .dot{width:9px;height:9px;border-radius:50%; background:var(--line); flex:none;}
+  .progress-item.done .dot{background:var(--sage);}
+  .progress-item.done{color:var(--ink);}
+  .progress-item:not(.done){color:var(--ink-faint);}
+
+  .footer-nav{display:flex; justify-content:space-between; align-items:center; padding:14px 24px 20px; border-top:1px solid var(--line); margin-top:auto;}
+  .link-btn{background:none;border:none;color:var(--ink-soft); font-size:13px; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;}
+  .link-btn:hover{color:var(--ink);}
+
+  .final-badge{
+    width:64px;height:64px;border-radius:50%; background:var(--sage-soft); color:var(--sage);
+    display:flex; align-items:center; justify-content:center; font-size:28px; margin:6px auto 2px;
+  }
+
+  /* ---------- Log panel ---------- */
+  .logpanel{
+    border:1px solid var(--line); border-radius:18px; background:var(--paper-raised);
+    padding:16px 16px 12px; position:sticky; top:20px; box-shadow:var(--shadow);
+  }
+  .logpanel h3{font-family:'Fraunces',serif; font-size:15px; margin:0 0 4px; font-weight:600;}
+  .logpanel .sub{font-size:11.5px; color:var(--ink-faint); margin-bottom:12px; line-height:1.4;}
+  .legend{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;}
+  .legend .tag{font-size:9.5px; font-weight:700; letter-spacing:.3px; padding:3px 7px; border-radius:6px;}
+  .tag.CLIENT{background:#EDEAE0; color:#5A6560;}
+  .tag.AUTH{background:var(--indigo-soft); color:var(--indigo-deep);}
+  .tag.AI{background:var(--saffron-soft); color:var(--saffron-deep);}
+  .tag.OCR{background:#E7E0F2; color:#4B3A78;}
+  .tag.SYNC{background:var(--sage-soft); color:var(--sage);}
+  .log-list{display:flex; flex-direction:column-reverse; gap:9px; max-height:420px; overflow-y:auto; padding-right:4px;}
+  .log-list::-webkit-scrollbar{width:5px;}
+  .log-list::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  .log-line{font-size:12px; line-height:1.4; opacity:0; animation:fadeLog .4s ease forwards;}
+  @keyframes fadeLog{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+  .log-line .t{color:var(--ink-faint); font-size:10px; margin-right:6px;}
+  .log-empty{font-size:12px; color:var(--ink-faint); font-style:italic; padding:6px 0;}
+
+  .note{
+    font-size:11px; color:var(--ink-faint); text-align:center; max-width:400px; line-height:1.5; margin:2px auto 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brandmark">
+    <div class="glyph"></div>
+    <div class="name">SwasthSetu<small>Kiosk prototype — Smart India Hackathon 2026</small></div>
+  </div>
+  <div class="topbar-actions">
+    <button class="ghost-btn" id="guideBtn">What's simulated?</button>
+    <button class="ghost-btn" id="restartBtn">Restart</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="rail" id="rail"></div>
+
+  <div class="kiosk-wrap">
+    <div class="kiosk-shell">
+      <div class="kiosk-notch"><span></span><span></span></div>
+      <div class="kiosk-screen">
+        <div id="screenContent"></div>
+      </div>
+      <div class="kiosk-home"></div>
+    </div>
+    <p class="note">Simulated kiosk touchscreen — no real Aadhaar, ABHA, or medical data is used or transmitted. All verification, AI and sync steps are mocked for demonstration.</p>
+  </div>
+
+  <div class="logpanel">
+    <h3>System activity</h3>
+    <div class="sub">Live trace of which technology layer each action would call, mapped to the SwasthSetu architecture.</div>
+    <div class="legend">
+      <span class="tag CLIENT">CLIENT</span>
+      <span class="tag AUTH">AUTH</span>
+      <span class="tag AI">AI</span>
+      <span class="tag OCR">OCR</span>
+      <span class="tag SYNC">SYNC</span>
+    </div>
+    <div class="log-list" id="logList"></div>
+  </div>
+</div>
+
+<script>
+/* ============ State ============ */
+const data = {
+  lang:'en',
+  patientType:null,     // 'new' | 'returning'
+  name:null,
+  abhaId:null,
+  mode:null,            // 'ayush' | 'allopathic'
+  complaint:'',
+  usedVoice:false,
+  ayush:{}, general:{},
+  isFollowUp:false,
+  trend:null,
+  reportSource:null,    // 'scan' | 'review'
+  extracted:null,
+};
+
+const STR = {
+  en:{ brand:"SwasthSetu", tagline:"Your health, bridged — Ayurveda and modern medicine, one kiosk visit.",
+       touch:"Tap the screen or say “Namaste” to begin", newT:"New Patient", newS:"Register with Aadhaar & create an ABHA ID",
+       retT:"Returning Patient", retS:"Quick verification with your ABHA ID",
+       micHint:"Tap the mic and describe how you're feeling, or type it below." },
+  hi:{ brand:"स्वास्थसेतु", tagline:"आपकी सेहत, एक सेतु — आयुर्वेद और आधुनिक चिकित्सा, एक ही कियोस्क पर।",
+       touch:"शुरू करने के लिए स्क्रीन को छुएं या “नमस्ते” बोलें", newT:"नया मरीज़", newS:"आधार से पंजीकरण करें और ABHA आईडी बनाएं",
+       retT:"पूर्व मरीज़", retS:"अपनी ABHA आईडी से त्वरित सत्यापन",
+       micHint:"माइक दबाएं और बताएं आपको क्या तकलीफ़ है, या नीचे टाइप करें।" }
+};
+
+const RAIL = ["Identity","Mode","Complaint","Assessment","Reports","Summary","Sync"];
+let currentStage = 0; // 0 = welcome (before stage 1)
+
+/* ============ Log ============ */
+function log(tag, text){
+  const list = document.getElementById('logList');
+  const empty = list.querySelector('.log-empty');
+  if(empty) empty.remove();
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  const time = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  line.innerHTML = `<span class="t">${time}</span><span class="tag ${tag}" style="margin-right:6px;">${tag}</span>${text}`;
+  list.appendChild(line);
+  list.scrollTop = list.scrollHeight;
+}
+function resetLog(){
+  document.getElementById('logList').innerHTML = '<div class="log-empty">Waiting for the first action…</div>';
+}
+
+/* ============ Rail ============ */
+function renderRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = RAIL.map((label,i)=>{
+    const n = i+1;
+    let cls = '';
+    if(n < currentStage) cls = 'done'; else if(n === currentStage) cls = 'active';
+    return `<div class="rail-step ${cls}">
+      <div class="rail-line-seg"></div>
+      <div class="rail-dot">${n < currentStage ? '✓' : n}</div>
+      <div class="rail-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ Router ============ */
+const screen = document.getElementById('screenContent');
+function render(stepId){
+  window.__step = stepId;
+  screen.innerHTML = SCREENS[stepId]();
+  bind(stepId);
+}
+function goto(stepId, stage){
+  if(stage !== undefined) currentStage = stage;
+  renderRail();
+  render(stepId);
+}
+
+/* ============ Helpers ============ */
+function t(key){ return STR[data.lang][key]; }
+function esc(s){ return (s||'').replace(/[<>&]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+/* ============ Screens ============ */
+const SCREENS = {
+
+  welcome: ()=>`
+    <div class="screen-inner" style="justify-content:space-between; min-height:600px;">
+      <div>
+        <div class="kicker-row">
+          <span class="eyebrow">SWASTHSETU KIOSK</span>
+          <div class="lang-toggle">
+            <button data-lang="en" class="${data.lang==='en'?'on':''}">EN</button>
+            <button data-lang="hi" class="${data.lang==='hi'?'on':''}">हिं</button>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;">
+        <div style="width:64px;height:64px;border-radius:20px;background:conic-gradient(from 210deg, var(--saffron), var(--sage) 50%, var(--indigo) 100%); position:relative;">
+          <div style="position:absolute; inset:8px; border-radius:13px; background:var(--paper-raised);"></div>
+        </div>
+        <h1 class="display" style="font-size:28px; margin:0;">${t('brand')}</h1>
+        <p class="scr-sub" style="max-width:280px;">${t('tagline')}</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px; align-items:center;">
+        <button class="btn btn-primary" id="beginBtn" style="max-width:260px;">${t('touch')}</button>
+        <div style="display:flex; gap:16px; font-size:11px; color:var(--ink-faint);">
+          <span>🔊 Voice assist ready</span><span>🌐 Bhashini ASR/TTS</span>
+        </div>
+      </div>
+    </div>`,
+
+  patientType: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 1 · IDENTITY</span>
+      <h1 class="scr-title">Have you visited SwasthSetu before?</h1>
+      <p class="scr-sub">This decides how we verify you — a fresh ABHA registration, or a quick returning check.</p>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:6px;">
+        <div class="choice-card neutral" data-goto="newAadhaar" data-stage="1" data-log="New-patient path selected">
+          <div class="icn">🪪</div>
+          <div><div class="ct">${t('newT')}</div><div class="cs">${t('newS')}</div></div>
+        </div>
+        <div class="choice-card neutral" data-goto="returningAbha" data-stage="1" data-log="Returning-patient path selected">
+          <div class="icn">↩️</div>
+          <div><div class="ct">${t('retT')}</div><div class="cs">${t('retS')}</div></div>
+        </div>
+      </div>
+    </div>`,
+
+  newAadhaar: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">NEW PATIENT · AADHAAR eKYC</span>
+      <h1 class="scr-title">Enter Aadhaar number</h1>
+      <p class="scr-sub">Used once to fetch your demographic details and register an ABHA ID via the ABDM sandbox.</p>
+      <div>
+        <label class="field-label">12-digit Aadhaar number</label>
+        <input class="text-input" id="aadhaarInput" maxlength="14" placeholder="XXXX XXXX XXXX" inputmode="numeric">
+      </div>
+      <button class="btn btn-primary" id="sendOtpBtn" disabled>Send OTP</button>
+      <button class="link-btn" data-goto="patientType" data-stage="1" style="text-align:left;">← Back</button>
+    </div>`,
+
+  newOtp: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">NEW PATIENT · OTP VERIFICATION</span>
+      <h1 class="scr-title">Enter the OTP</h1>
+      <p class="scr-sub">Sent by UIDAI to your Aadhaar-linked mobile number ending •• 47.</p>
+      <div class="otp-row">
+        ${[0,1,2,3,4,5].map(i=>`<input class="otp-box" maxlength="1" inputmode="numeric" data-otp="${i}">`).join('')}
+      </div>
+      <button class="btn btn-primary" id="verifyOtpBtn" disabled>Verify & create ABHA ID</button>
+      <button class="link-btn" data-goto="newAadhaar" style="text-align:left;">← Back</button>
+    </div>`,
+
+  newVerifying: ()=>`
+    <div class="screen-inner" style="align-items:center; justify-content:center; text-align:center; gap:18px; min-height:600px;">
+      <div class="mic-btn" style="background:var(--indigo); animation:pulse 1.2s infinite;">⏳</div>
+      <div>
+        <h1 class="scr-title" style="font-size:18px;">Verifying with UIDAI…</h1>
+        <p class="scr-sub">Fetching demographic data and creating your ABHA ID</p>
+      </div>
+    </div>`,
+
+  newSuccess: ()=>`
+    <div class="screen-inner" style="align-items:center; text-align:center; gap:10px;">
+      <div class="final-badge">✓</div>
+      <h1 class="scr-title">Welcome, ${data.name}</h1>
+      <div class="pill sage">ABHA ID created</div>
+      <div class="summary-card" style="width:100%; text-align:left; margin-top:8px;">
+        <div class="summary-row"><span class="k">Name</span><span class="v">${data.name}</span></div>
+        <div class="summary-row"><span class="k">ABHA ID</span><span class="v">${data.abhaId}</span></div>
+        <div class="summary-row"><span class="k">Verified via</span><span class="v">UIDAI e-KYC</span></div>
+      </div>
+      <button class="btn btn-primary" data-goto="modeSelect" data-stage="2" style="margin-top:10px;">Continue</button>
+    </div>`,
+
+  returningAbha: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">RETURNING PATIENT · QUICK VERIFY</span>
+      <h1 class="scr-title">Scan or enter your ABHA ID</h1>
+      <p class="scr-sub">We'll fetch your existing SwasthSetu profile and past visit summary.</p>
+      <div style="border:1.5px dashed var(--line); border-radius:14px; padding:22px; text-align:center; color:var(--ink-faint); font-size:12.5px;">
+        📷 Point ABHA QR at the scanner
+      </div>
+      <div style="text-align:center; font-size:11px; color:var(--ink-faint);">— or —</div>
+      <input class="text-input" id="abhaInput" placeholder="14-2345-6789-1023">
+      <button class="btn btn-primary" id="verifyAbhaBtn" disabled>Verify</button>
+      <button class="link-btn" data-goto="patientType" data-stage="1" style="text-align:left;">← Back</button>
+    </div>`,
+
+  returningVerifying: ()=>`
+    <div class="screen-inner" style="align-items:center; justify-content:center; text-align:center; gap:18px; min-height:600px;">
+      <div class="mic-btn" style="background:var(--sage); animation:pulse 1.2s infinite;">⏳</div>
+      <div>
+        <h1 class="scr-title" style="font-size:18px;">Fetching your profile…</h1>
+        <p class="scr-sub">ABHA Sandbox Gateway → SwasthSetu patient record</p>
+      </div>
+    </div>`,
+
+  returningSuccess: ()=>`
+    <div class="screen-inner" style="align-items:center; text-align:center; gap:10px;">
+      <div class="final-badge">✓</div>
+      <h1 class="scr-title">Welcome back, ${data.name}</h1>
+      <div class="summary-card" style="width:100%; text-align:left; margin-top:4px;">
+        <div class="summary-row"><span class="k">Last visit</span><span class="v">14 Aug 2026</span></div>
+        <div class="summary-row"><span class="k">Last mode</span><span class="v">Ayurvedic (AYUSH)</span></div>
+        <div class="summary-row"><span class="k">Open follow-up</span><span class="v">Joint pain review</span></div>
+      </div>
+      <button class="btn btn-primary" data-goto="modeSelect" data-stage="2" style="margin-top:10px;">Continue</button>
+    </div>`,
+
+  modeSelect: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 2 · CHOOSE PATIENT CATEGORY</span>
+      <h1 class="scr-title">Which kind of care do you need today?</h1>
+      <p class="scr-sub">This sets your consultation route for the visit.</p>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:6px;">
+        <div class="choice-card ayush" data-mode="ayush">
+          <div class="icn">🌿</div>
+          <div><div class="ct">Ayurvedic care</div><div class="cs">Route: /ayurvedic — AYUSH mode, Dashavidha Pariksha assessment</div></div>
+        </div>
+        <div class="choice-card allo" data-mode="allopathic">
+          <div class="icn">🩺</div>
+          <div><div class="ct">Allopathic care</div><div class="cs">Route: /allopathic — modern medicine, general consultation</div></div>
+        </div>
+      </div>
+    </div>`,
+
+  complaint: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 3 · CHIEF COMPLAINT</span>
+      <h1 class="scr-title">What's bothering you?</h1>
+      <p class="scr-sub">${t('micHint')}</p>
+      <div class="mic-zone">
+        <button class="mic-btn" id="micBtn">🎙️</button>
+        <div class="mic-hint" id="micStatus">Tap to speak</div>
+      </div>
+      <div class="transcript-box ${data.complaint?'':'placeholder'}" id="transcriptBox">
+        ${data.complaint || 'Your transcribed complaint will appear here…'}
+      </div>
+      <textarea class="text-input" id="editComplaint" placeholder="…or type it here" style="min-height:50px; display:${data.complaint?'none':'block'};"></textarea>
+      <button class="btn btn-primary" id="complaintNext" ${data.complaint?'':'disabled'}>Continue</button>
+    </div>`,
+
+  ayushAssess: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 4 · AYUSH ASSESSMENT</span>
+      <h1 class="scr-title">Symptom &amp; Dashavidha Pariksha</h1>
+      <div class="scroll-area">
+        <div class="qa-block">
+          <div class="qa-q">How often does this occur?</div>
+          <div class="chip-row" data-group="freq">
+            ${['Occasionally','Daily','Constant'].map(o=>`<div class="chip">${o}</div>`).join('')}
+          </div>
+        </div>
+        <div class="qa-block">
+          <div class="qa-q">Prakriti indicator — which feels most like you?</div>
+          <div class="chip-row" data-group="prakriti">
+            ${['Light, quick, dry (Vata)','Warm, sharp, intense (Pitta)','Steady, heavy, calm (Kapha)'].map(o=>`<div class="chip">${o}</div>`).join('')}
+          </div>
+        </div>
+        <div class="qa-block">
+          <div class="qa-q">Agni (digestive strength — Ahara Shakti)</div>
+          <div class="slider-row"><input type="range" min="1" max="5" value="3" id="agniSlider"><div class="slider-vals"><span>Weak</span><span>Strong</span></div></div>
+        </div>
+        <div class="qa-block">
+          <div class="qa-q">Vyayama Shakti — physical stamina today</div>
+          <div class="slider-row"><input type="range" min="1" max="5" value="3" id="staminaSlider"><div class="slider-vals"><span>Low</span><span>High</span></div></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="ayushNext">Compute assessment</button>
+    </div>`,
+
+  generalAssess: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 4 · GENERAL CONSULTATION</span>
+      <h1 class="scr-title">Symptom &amp; severity check</h1>
+      <div class="scroll-area">
+        <div class="qa-block">
+          <div class="qa-q">Duration of symptoms</div>
+          <div class="chip-row" data-group="duration">
+            ${['Since today','2–3 days','Over a week'].map(o=>`<div class="chip">${o}</div>`).join('')}
+          </div>
+        </div>
+        <div class="qa-block">
+          <div class="qa-q">Severity</div>
+          <div class="slider-row"><input type="range" min="1" max="5" value="2" id="severitySlider"><div class="slider-vals"><span>Mild</span><span>Severe</span></div></div>
+        </div>
+        <div class="qa-block">
+          <div class="qa-q">Any of these accompanying symptoms?</div>
+          <div class="chip-row" data-group="accomp" data-multi="1">
+            ${['Fever','Fatigue','Nausea','None'].map(o=>`<div class="chip">${o}</div>`).join('')}
+          </div>
+        </div>
+        <div class="qa-block">
+          <div class="qa-q">Quick vitals (optional)</div>
+          <div style="display:flex; gap:10px;">
+            <input class="text-input" placeholder="Temp °F" id="tempInput">
+            <input class="text-input" placeholder="BP mmHg" id="bpInput">
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="generalNext">Compute assessment</button>
+    </div>`,
+
+  followUp: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">FOLLOW-UP CHECK · RETURNING OPD</span>
+      <h1 class="scr-title">Comparing with your last visit</h1>
+      <p class="scr-sub">Last visit: 14 Aug 2026 — ${data.mode==='ayush'?'Ayurvedic':'Allopathic'} · Joint pain review.</p>
+      <div class="qa-block">
+        <div class="qa-q">Compared to last time, the symptom is:</div>
+        <div class="chip-row" data-group="trend">
+          ${['Better','About the same','Worse'].map(o=>`<div class="chip">${o}</div>`).join('')}
+        </div>
+      </div>
+      <button class="btn btn-primary" id="followUpNext" disabled>Continue</button>
+    </div>`,
+
+  reports: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 5 · MEDICAL REPORTS</span>
+      <h1 class="scr-title">${data.patientType==='returning' ? 'Scan new or review existing reports?' : 'Scan your physical reports'}</h1>
+      <p class="scr-sub">Reports are read on-device with OCR and matched to standard lab fields.</p>
+      ${data.patientType==='returning' ? `
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="reviewBtn">Review existing</button>
+          <button class="btn btn-secondary" id="scanBtn">Scan new</button>
+        </div>` : `
+        <div class="btn-row"><button class="btn btn-primary" id="scanBtn" style="width:100%;">📷 Scan a report</button></div>
+      `}
+      <div id="reportResult"></div>
+      <button class="btn btn-primary" id="reportsNext" disabled>Continue</button>
+    </div>`,
+
+  summary: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 6 · COMPREHENSIVE SUMMARY</span>
+      <h1 class="scr-title">Visit summary</h1>
+      <div class="scroll-area" style="max-height:400px;">
+        <div class="summary-card">
+          <div class="summary-row"><span class="k">Patient</span><span class="v">${data.name}</span></div>
+          <div class="summary-row"><span class="k">ABHA ID</span><span class="v">${data.abhaId}</span></div>
+          <div class="summary-row"><span class="k">Route</span><span class="v">${data.mode==='ayush'?'/ayurvedic (AYUSH)':'/allopathic'}</span></div>
+          <div class="summary-row"><span class="k">Chief complaint</span><span class="v" style="max-width:170px;">${esc(data.complaint)}</span></div>
+        </div>
+        <div class="summary-card">
+          ${data.mode==='ayush' ? `
+            <div class="summary-row"><span class="k">Prakriti</span><span class="v">${data.ayush.prakriti||'Vata–Pitta'}</span></div>
+            <div class="summary-row"><span class="k">Agni (digestive strength)</span><span class="v">${data.ayush.agni||3}/5</span></div>
+            <div class="summary-row"><span class="k">Coded ontology</span><span class="v">NAMASTE + SNOMED-CT</span></div>
+          ` : `
+            <div class="summary-row"><span class="k">Severity</span><span class="v">${data.general.severity||2}/5</span></div>
+            <div class="summary-row"><span class="k">Symptoms extracted</span><span class="v">${data.general.symptoms||'Fever, fatigue'}</span></div>
+            <div class="summary-row"><span class="k">Triage flag</span><span class="v">${data.general.triage||'Routine'}</span></div>
+          `}
+        </div>
+        ${data.extracted ? `
+        <div class="summary-card">
+          <div class="summary-row"><span class="k">Report source</span><span class="v">${data.reportSource==='scan'?'Newly scanned':'Existing record'}</span></div>
+          <div class="summary-row"><span class="k">Extracted field</span><span class="v">${data.extracted}</span></div>
+        </div>` : ''}
+        ${data.isFollowUp ? `<div class="summary-card"><div class="summary-row"><span class="k">Follow-up trend</span><span class="v">${data.trend}</span></div></div>` : ''}
+      </div>
+      <button class="btn btn-primary" id="summaryNext">Sync &amp; finish visit</button>
+    </div>`,
+
+  sync: ()=>`
+    <div class="screen-inner">
+      <span class="eyebrow">STEP 7 · SYNC TO ABHA</span>
+      <h1 class="scr-title">Uploading to your central health record</h1>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;" id="syncSteps">
+        <div class="progress-item" data-i="0"><div class="dot"></div>HL7 FHIR R4 bundle built</div>
+        <div class="progress-item" data-i="1"><div class="dot"></div>ABDM M2 API — clinical artifact pushed</div>
+        <div class="progress-item" data-i="2"><div class="dot"></div>ABDM M3 API — linked to ABHA record</div>
+        <div class="progress-item" data-i="3"><div class="dot"></div>Central cloud sync complete</div>
+      </div>
+    </div>`,
+
+  done: ()=>`
+    <div class="screen-inner" style="align-items:center; text-align:center; gap:10px; justify-content:center; min-height:600px;">
+      <div class="final-badge">✓</div>
+      <h1 class="scr-title">Visit complete</h1>
+      <p class="scr-sub">Your summary has been added to your ABHA health record.</p>
+      <div class="summary-card" style="width:100%; text-align:left;">
+        <div class="summary-row"><span class="k">Visit ID</span><span class="v">SS-${Math.floor(100000+Math.random()*900000)}</span></div>
+        <div class="summary-row"><span class="k">Linked ABHA ID</span><span class="v">${data.abhaId}</span></div>
+      </div>
+      <p class="scr-sub" style="font-size:12px;">Take a screenshot of your visit ID, or ask reception for a printed copy.</p>
+      <button class="btn btn-secondary" id="nextPatientBtn" style="margin-top:6px;">Start next patient</button>
+    </div>`
+};
+
+/* ============ Bindings per screen ============ */
+function bind(stepId){
+  // generic nav buttons
+  screen.querySelectorAll('[data-goto]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const stage = el.dataset.stage!==undefined ? parseInt(el.dataset.stage) : currentStage;
+      if(el.dataset.log) log('CLIENT', el.dataset.log);
+      goto(el.dataset.goto, stage);
+    });
+  });
+
+  if(stepId==='welcome'){
+    screen.querySelectorAll('[data-lang]').forEach(b=> b.addEventListener('click', ()=>{ data.lang=b.dataset.lang; render('welcome'); }));
+    document.getElementById('beginBtn').addEventListener('click', ()=>{
+      resetLog();
+      log('CLIENT','Kiosk session started — Electron.js wrapper active');
+      goto('patientType',1);
+    });
+  }
+
+  if(stepId==='newAadhaar'){
+    const input = document.getElementById('aadhaarInput');
+    const btn = document.getElementById('sendOtpBtn');
+    input.addEventListener('input', ()=>{
+      input.value = input.value.replace(/\D/g,'').slice(0,12).replace(/(\d{4})(?=\d)/g,'$1 ');
+      btn.disabled = input.value.replace(/\s/g,'').length !== 12;
+    });
+    btn.addEventListener('click', ()=>{
+      data.aadhaar = input.value;
+      log('AUTH','UIDAI Aadhaar OTP request sent');
+      goto('newOtp');
+    });
+  }
+
+  if(stepId==='newOtp'){
+    const boxes = [...screen.querySelectorAll('[data-otp]')];
+    const btn = document.getElementById('verifyOtpBtn');
+    boxes.forEach((b,i)=>{
+      b.addEventListener('input', ()=>{
+        b.value = b.value.replace(/\D/g,'');
+        if(b.value && boxes[i+1]) boxes[i+1].focus();
+        btn.disabled = !boxes.every(x=>x.value.length===1);
+      });
+    });
+    btn.addEventListener('click', ()=>{
+      goto('newVerifying');
+      log('AUTH','UIDAI e-KYC — OTP verified');
+      setTimeout(()=>{
+        data.name = 'Rani Devi';
+        data.abhaId = '14-4821-7093-5561';
+        log('AUTH','ABDM Milestone 1 API — ABHA ID created & linked');
+        goto('newSuccess');
+      }, 1300);
+    });
+  }
+
+  if(stepId==='returningAbha'){
+    const input = document.getElementById('abhaInput');
+    const btn = document.getElementById('verifyAbhaBtn');
+    input.addEventListener('input', ()=> btn.disabled = input.value.trim().length < 8);
+    btn.addEventListener('click', ()=>{
+      data.abhaId = input.value.trim() || '14-2345-6789-1023';
+      goto('returningVerifying');
+      setTimeout(()=>{
+        data.name = 'Suresh Kumar';
+        log('AUTH','ABHA Sandbox Gateway — profile fetched (HL7 FHIR R4)');
+        goto('returningSuccess');
+      }, 1300);
+    });
+  }
+
+  if(stepId==='modeSelect'){
+    screen.querySelectorAll('[data-mode]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        data.mode = el.dataset.mode;
+        log('CLIENT', `Route set to ${data.mode==='ayush'?'/ayurvedic (AYUSH mode)':'/allopathic'}`);
+        goto('complaint',3);
+      });
+    });
+  }
+
+  if(stepId==='complaint'){
+    const micBtn = document.getElementById('micBtn');
+    const status = document.getElementById('micStatus');
+    const box = document.getElementById('transcriptBox');
+    const editArea = document.getElementById('editComplaint');
+    const nextBtn = document.getElementById('complaintNext');
+    const sample = data.mode==='ayush'
+      ? "Joint pain and low energy for about two weeks, worse in the morning."
+      : "Mild fever and headache since yesterday evening, some body ache.";
+
+    micBtn.addEventListener('click', ()=>{
+      micBtn.classList.add('listening');
+      status.textContent = 'Listening…';
+      log('CLIENT','Bhashini ASR — capturing voice input');
+      setTimeout(()=>{
+        micBtn.classList.remove('listening');
+        status.textContent = 'Transcribed';
+        data.complaint = sample;
+        data.usedVoice = true;
+        box.classList.remove('placeholder');
+        box.textContent = sample;
+        editArea.style.display='none';
+        nextBtn.disabled = false;
+        log('CLIENT','Bhashini ASR — transcription complete (hi-IN → en)');
+      }, 1400);
+    });
+    editArea.addEventListener('input', ()=>{
+      data.complaint = editArea.value;
+      nextBtn.disabled = editArea.value.trim().length===0;
+      box.classList.toggle('placeholder', !editArea.value);
+      box.textContent = editArea.value || 'Your transcribed complaint will appear here…';
+    });
+    nextBtn.addEventListener('click', ()=>{
+      log('CLIENT','Chief complaint recorded');
+      if(data.mode==='ayush') goto('ayushAssess',4); else goto('generalAssess',4);
+    });
+  }
+
+  if(stepId==='ayushAssess'){
+    setupChipGroups();
+    document.getElementById('ayushNext').addEventListener('click', ()=>{
+      const prakritiChoice = screen.querySelector('[data-group="prakriti"] .chip.sel');
+      data.ayush.prakriti = prakritiChoice ? prakritiChoice.textContent.match(/\(([^)]+)\)/)[1] : 'Vata–Pitta';
+      data.ayush.agni = document.getElementById('agniSlider').value;
+      log('AI','Dashavidha Pariksha logic — Prakriti computed: ' + data.ayush.prakriti);
+      log('AI','NAMASTE portal — AYUSH ontology terms coded');
+      if(data.patientType==='returning'){ goto('followUp'); } else { goto('reports',5); }
+    });
+  }
+
+  if(stepId==='generalAssess'){
+    setupChipGroups();
+    document.getElementById('generalNext').addEventListener('click', ()=>{
+      data.general.severity = document.getElementById('severitySlider').value;
+      const accomp = [...screen.querySelectorAll('[data-group="accomp"] .chip.sel')].map(c=>c.textContent);
+      data.general.symptoms = accomp.length ? accomp.join(', ') : 'Headache, fatigue';
+      data.general.triage = data.general.severity >= 4 ? 'Needs review' : 'Routine';
+      log('AI','BioMistral / Med-Llama — symptom extraction complete');
+      log('AI','SNOMED-CT — clinical codes mapped');
+      if(data.patientType==='returning'){ goto('followUp'); } else { goto('reports',5); }
+    });
+  }
+
+  if(stepId==='followUp'){
+    setupChipGroups();
+    const btn = document.getElementById('followUpNext');
+    screen.querySelectorAll('[data-group="trend"] .chip').forEach(c=>{
+      c.addEventListener('click', ()=> btn.disabled=false);
+    });
+    btn.addEventListener('click', ()=>{
+      const sel = screen.querySelector('[data-group="trend"] .chip.sel');
+      data.trend = sel ? sel.textContent : 'About the same';
+      data.isFollowUp = true;
+      log('AI','Follow-up Dashavidha comparison logged — trend: ' + data.trend);
+      goto('reports',5);
+    });
+  }
+
+  if(stepId==='reports'){
+    const nextBtn = document.getElementById('reportsNext');
+    const resultBox = document.getElementById('reportResult');
+    const finishScan = (label, field)=>{
+      data.reportSource = label;
+      data.extracted = field;
+      resultBox.innerHTML = `<div class="summary-card" style="margin-top:4px;"><div class="summary-row"><span class="k">Extracted</span><span class="v">${field}</span></div></div>`;
+      nextBtn.disabled = false;
+    };
+    const scanBtn = document.getElementById('scanBtn');
+    if(scanBtn) scanBtn.addEventListener('click', ()=>{
+      resultBox.innerHTML = `<div class="qa-block" style="text-align:center; color:var(--ink-faint); font-size:12.5px;">Scanning… OCR in progress</div>`;
+      log('OCR','AWS Textract / Tesseract — reading physical report');
+      setTimeout(()=> {
+        log('OCR','Report parsed — 2 fields matched to FHIR');
+        finishScan('scan','Hemoglobin 11.2 g/dL · TSH 3.1 mIU/L');
+      }, 1200);
+    });
+    const reviewBtn = document.getElementById('reviewBtn');
+    if(reviewBtn) reviewBtn.addEventListener('click', ()=>{
+      log('SYNC','MongoDB / PostgreSQL kiosk cache — 3 prior reports loaded');
+      finishScan('review','CBC (02 Aug) · Lipid panel (14 Aug) · X-ray knee (14 Aug)');
+    });
+    nextBtn.addEventListener('click', ()=>{ goto('summary',6); });
+  }
+
+  if(stepId==='summary'){
+    document.getElementById('summaryNext').addEventListener('click', ()=>{
+      log('CLIENT','Comprehensive visit summary compiled');
+      goto('sync',7);
+      runSync();
+    });
+  }
+
+  if(stepId==='done'){
+    document.getElementById('nextPatientBtn').addEventListener('click', resetForNextPatient);
+  }
+}
+
+function resetForNextPatient(){
+  Object.assign(data, {patientType:null,name:null,abhaId:null,mode:null,complaint:'',usedVoice:false,ayush:{},general:{},isFollowUp:false,trend:null,reportSource:null,extracted:null});
+  resetLog();
+  goto('welcome',0);
+}
+
+function setupChipGroups(){
+  const groups = {};
+  screen.querySelectorAll('[data-group]').forEach(g=> groups[g.dataset.group]=g);
+  Object.values(groups).forEach(g=>{
+    const multi = g.dataset.multi === '1';
+    g.querySelectorAll('.chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        if(multi){ chip.classList.toggle('sel'); }
+        else { g.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel')); chip.classList.add('sel'); }
+      });
+    });
+  });
+}
+
+function runSync(){
+  const items = [...document.querySelectorAll('#syncSteps .progress-item')];
+  const logs = [
+    ['SYNC','HL7 FHIR R4 bundle built from visit data'],
+    ['SYNC','ABDM M2 API — clinical artifact pushed'],
+    ['SYNC','ABDM M3 API — linked to central ABHA record'],
+    ['SYNC','Central cloud sync complete — kiosk cache cleared']
+  ];
+  items.forEach((item,i)=>{
+    setTimeout(()=>{
+      item.classList.add('done');
+      log(logs[i][0], logs[i][1]);
+      if(i===items.length-1){ setTimeout(()=> goto('done',8), 700); }
+    }, 650*(i+1));
+  });
+}
+
+/* ============ Global controls ============ */
+document.getElementById('restartBtn').addEventListener('click', resetForNextPatient);
+document.getElementById('guideBtn').addEventListener('click', ()=>{
+  alert("This prototype simulates the SwasthSetu kiosk journey end-to-end:\n\n• Aadhaar / ABHA verification is mocked (no real UIDAI/ABDM calls)\n• Voice input plays a canned transcript instead of live Bhashini ASR\n• The AYUSH/AI outputs (Prakriti, symptom extraction) are simplified rule-based mocks standing in for BioMistral/Med-Llama + Dashavidha Pariksha logic\n• OCR results are pre-set instead of real Textract/Tesseract output\n• The sync log simulates calls to ABDM M2/M3 APIs and the FHIR pipeline\n\nSee the accompanying documentation for the full architecture this prototype maps to.");
+});
+
+/* track patientType when chosen (needed before mode/reports logic) */
+const origGoto = goto;
+window.goto = function(stepId, stage){
+  if(stepId==='newAadhaar') data.patientType='new';
+  if(stepId==='returningAbha') data.patientType='returning';
+  origGoto(stepId, stage);
+};
+
+/* ============ Init ============ */
+resetLog();
+renderRail();
+render('welcome');
+</script>
+</body>
+</html>
