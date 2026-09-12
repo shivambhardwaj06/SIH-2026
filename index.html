@@ -66,10 +66,10 @@
   .ghost-btn:hover{border-color:var(--ink-faint);}
 
   /* ---------- Layout ---------- */
-  .stage{
-    max-width:1320px; margin:0 auto; padding:18px clamp(18px,4vw,48px) 60px;
-    display:grid; grid-template-columns:120px minmax(340px,460px) 320px;
-    gap:28px; align-items:start;
+/* NAYA */
+.stage{
+    max-width:1600px; margin:0 auto; padding:18px clamp(18px,4vw,48px) 60px;
+    display:grid; grid-template-columns:120px minmax(560px,700px) 320px;
   }
   @media (max-width:1100px){
     .stage{grid-template-columns:1fr; justify-items:center;}
@@ -105,8 +105,9 @@
 
   /* ---------- Kiosk shell ---------- */
   .kiosk-wrap{display:flex; flex-direction:column; align-items:center; gap:14px;}
-  .kiosk-shell{
-    width:400px; max-width:92vw; background:linear-gradient(180deg,#232C28,#171E1B);
+/* NAYA */
+.kiosk-shell{
+    width:640px; max-width:94vw; background:linear-gradient(180deg,#232C28,#171E1B);
     border-radius:38px; padding:16px 14px 26px; box-shadow:var(--shadow);
     position:relative;
   }
@@ -115,8 +116,9 @@
     display:flex; align-items:center; justify-content:center; gap:6px;
   }
   .kiosk-notch span{width:5px;height:5px;border-radius:50%; background:#3A4741;}
-  .kiosk-screen{
-    background:var(--paper-raised); border-radius:24px; min-height:600px;
+/* PURANA */
+.kiosk-screen{
+    background:var(--paper-raised); border-radius:24px; min-height:900px;
     display:flex; flex-direction:column; overflow:hidden; position:relative;
   }
   .kiosk-home{width:110px; height:4px; background:#3A4741; border-radius:3px; margin:14px auto 0;}
